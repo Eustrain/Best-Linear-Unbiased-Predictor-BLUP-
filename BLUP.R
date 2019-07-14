@@ -7,8 +7,10 @@
 ####################################################################
 ####################**Across Enviroment RCB **######################
 ####################      Example 1     ###########################
+library(lme4)
+library(dplyr)
 
-dat <- read.csv("dat_RCBD Data.csv",head=T)
+dat <- read.csv("dat_RCB.csv",head=T)
 names(dat)
 dat$YLD <- as.numeric(dat$YLD)
 dat$AD <- as.numeric(dat$AD)
@@ -16,23 +18,29 @@ dat$SD <- as.numeric(dat$SD)
 dat$PH <- as.numeric(dat$PH)
 dat$EH <- as.numeric(dat$EH)
 dat$rEPH <- as.numeric(dat$rEPH)
-trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
+trait <- c("YLD" ,"AD","SD","PH","EH","rEPH")
 
-Ex_1<- Blup_2(dat$Entry,dat$Replication,dat$BLK,dat$Location,trait,model = "RCB",dat)
+Ex_1<- Blup(dat$Entry,dat$Replication,dat$BLK,dat$Location,trait,model = "RCB",dat)
 Ex_1$VarianceComponets# <- variance componets and H2
 Ex_1$Blups ## <- BLUPS
+
+
+
 
 ####################################################################
 ####################**One Enviroment  RCB **#######################
 ####################      Example 2    ###########################
 
-dat <- read.csv("data_2.csv",header = T)
-names(dat) <- c("geno","rep","ears" ,"len"  ,   "weight"  ,"yield" )
+dat <- read.csv("dat_2.csv",header = T)
+names(dat) <- c("","geno","rep","ears" ,"len"  ,   "weight"  ,"yield" )
 head(dat)
 trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
-Ex_2<- Blup_2(dat$geno,dat$rep,Block = NULL,Env=NULL,trait,model = "RCB",dat)
+Ex_2<- Blup(dat$geno,dat$rep,Block = NULL,Env=NULL,trait,model = "RCB",dat)
 Ex_2$VarianceComponets# <- variance componets and H2
 Ex_2$Blups ## <- BLUPS
+
+
+
 
 
 #################Scrip
@@ -163,6 +171,14 @@ Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),da
 } ##end function
 
 
+###################Other Method For estimate blups     ##################
+###################          u+(??i ??? ??????)    *h2          #################
+Entr_mean <- tapply(dat$ ears, dat$geno, mean)          #################
+ovear_mean <- mean(Entr_mean)                           #################
+h2 <- Ex_2$VarianceComponets$H2[1]                      #################
+Blups<-ovear_mean+ (Entr_mean-ovear_mean)*(h2)          #################
+########################################################################
+########################################################################
 
 
 
