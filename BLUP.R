@@ -1,107 +1,176 @@
+############******BLUP******************#############################
+#### all effects are  taken as random
+#### Blup(Entry,Rep,Block,Env,Traits,model=c("RCB","Lattice"),data)
+#### if there not BLOCK then Block=NULL equals ENV
 
-########################################
-#####Variance components and BLUP#############
+####################################################################
+####################**Across Enviroment RCB **######################
+####################      Example 1     ###########################
 
-library(lme4)
-dat <- read.csv("data.csv",header = T)
+dat <- read.csv("dat_RCBD Data.csv",head=T)
+names(dat)
+dat$YLD <- as.numeric(dat$YLD)
+dat$AD <- as.numeric(dat$AD)
+dat$SD <- as.numeric(dat$SD)
+dat$PH <- as.numeric(dat$PH)
+dat$EH <- as.numeric(dat$EH)
+dat$rEPH <- as.numeric(dat$rEPH)
+trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
+
+Ex_1<- Blup_2(dat$Entry,dat$Replication,dat$BLK,dat$Location,trait,model = "RCB",dat)
+
+
+####################################################################
+####################**One Enviroment  RCB **#######################
+####################      Example 2    ###########################
+
+dat <- read.csv("data_2.csv",header = T)
 names(dat) <- c("geno","rep","ears" ,"len"  ,   "weight"  ,"yield" )
 head(dat)
-
-trait <- c("ears" ,"len"  ,   "weight"  ,"yield" )
-
-
-names(fw)
-
-fw <- read.csv("dat.csv",header = T)
-head(fw)
-fw <- dplyr::filter(fw,env==1)
-fw$PUDMZ <- as.numeric(fw$PUDMZ)
-fw$ALTMZ <- as.numeric(fw$ALTMZ)
-fw <- as.data.frame(fw)
-names(fw)
-trait <- c("ALTMZ")
-
-y <- fw$ALTMZ
-
-dd <- Blups(fw$geno,fw$rep,fw$BLOCK,trait,model = "Lattice",fw)
-dd$VarianceComponets
-
-Blups <- function(Entry,Rep,Block=NULL,Traits,model=c("RCB","Lattice"),data){
+trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
+Ex_2<- Blup_2(dat$geno,dat$rep,Block = NULL,Env=NULL,trait,model = "RCB",dat)
 
 
+#################Scrip
+
+
+Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),data){
   
-if (!is.null(Block)){
-    Block <- as.factor(fw$BLOCK)
-}  
-  
-geno<-as.factor(fw$entry)
-rep <-as.factor(fw$rep)
-nrep <- length(levels(rep))
-
-###########################################  
-nrep <- length(levels(rep))
-ng <-length(levels(geno))
-leng_traits<- length(trait)
-
-###########################################
-
-
-
-#########*Traits
-VarComp <- data.frame()
-H2 <- data.frame()
-Blups<- data.frame(matrix(vector(),ng,1, dimnames=list(c(), c("Entry"))))
-Blups$Entry <- levels(geno)
-
-##########################################
-
-for (i in 1: leng_traits) {
-  
-  y <- fw[,trait[i]]
-  
-  #if(model=="RCB"){
-  #fm <- lmer(y ~ (1|geno)+(1|rep))
-  #}
+  if (!is.null(Block)){
+    Block <- as.factor(Block)
+  }  
+  if (!is.null(Env)){
+    Block <- as.factor(Env)
+    Loc <- as.factor(Env) 
+    nLoc <- length(levels(Loc))
+  }  
   
   
-#else if (model=="Lattice"){
-  fm <- lmer(y~(1|geno)+(1|rep)+(1|Block:rep))
-#}
   
-    #*BLUPS
-  blup <- coef(fm)$geno
-  colnames(blup) <- trait[1]
-  Blups<-cbind(Blups,blup)
-  #*H2
-  vc <- VarCorr(fm,comp="Variance")
-  VG <- vc$geno[1]
-  VP<- vc$geno[1] + attr(vc, "sc")^2/nrep 
-  h2 <-data.frame( h2=VG/VP)
-  h2$trait <- trait[1]
-  H2<- rbind(H2,h2)
-  #* Variance Components
-  varComp<-as.data.frame(vc)
-  drops_cc<-  c("Block:rep")
-  drops <- c("var1","var2","sdcor") 
-  varComp<-varComp[ , !(names(varComp) %in% drops )]
-  varComp<-varComp[ !(varComp$grp %in% drops_cc), ]
-  varComp$Trait<-trait[1]
- VarComp <- rbind(VarComp,varComp)
+  Entry<-as.factor(Entry)
+  Rep <-as.factor(Rep)
+  nrep <- length(levels(Rep))  
+  nE <-length(levels(Entry))
+  leng_traits<- length(trait)
   
-}
+  
+  VarComp <- data.frame()
+  H2 <- data.frame()
+  Blups<- data.frame(matrix(vector(),nE,1, dimnames=list(c(), c("Entry"))))
+  Blups$Entry <- levels(Entry)
+  
+  if (!is.null(Env)) {
+    for (i in 1: leng_traits) {
+      
+      y <- data[,trait[i]]
+      
+      if (model=="Lattice"){
+        fm<- lmer(y~(1|Entry)+(1|Rep:Loc)+(1|Block:Rep:Loc)+(1|Entry:Loc)+(1|Loc))
+      }
+      
+      else if (model=="RCB"){
+        fm<- lmer(y~(1|Entry)+(1|Rep:Loc)+(1|Entry:Loc)+(1|Loc))
+      }
+      
+      blup <- coef(fm)$Entry
+      colnames(blup) <- trait[i]
+      Blups<-cbind(Blups,blup)
+      
+      
+      ### h2
+      
+      vc <- VarCorr(fm,comp="Variance")
+      VG <- vc$Entry[1]
+      VGE <- vc$`Entry:Loc`[1]
+      VP<- VG + VGE/nLoc + attr(vc, "sc")^2/(nrep*nLoc)
+      h2 <-data.frame( h2=VG/VP)
+      h2$trait <- trait[i]
+      H2<- rbind(H2,h2)
+      
+      
+      #### Variance Componets
+      
+      varComp<-as.data.frame(vc)
+      drops_cc<-  c("Rep:Loc","Block:Rep:Loc")
+      drops_c <- c("var1","var2","sdcor")
+      varComp<-varComp[ , !(names(varComp) %in% drops_c )]
+      varComp<-varComp[ !(varComp$grp %in% drops_cc), ]
+      varComp$Trait<-trait[i]
+      VarComp <- rbind(VarComp,varComp)
+      
+    } #end loop
+    
+    
+    
+    VarComp_Output <-reshape(VarComp, idvar = "Trait", timevar = "grp", direction = "wide")
+    names(VarComp_Output) <- c("Trait","GxE","Env","Entry","Error")                             
+    VarComp_Output$H2 <- H2$h2
+    
+  }##End across enviroment
+  
+  if (is.null(Env)) {
+    
+    for (i in 1: leng_traits) {
+      
+      y <- data[,trait[i]]
+      
+      if(model=="RCB"){
+        fm <- lmer(y ~ (1|Entry)+(1|Rep))
+      }
+      
+      else if (model=="Lattice"){
+        fm <- lmer(y~(1|Entry)+(1|Rep)+(1|Block:Rep))
+      }
+      
+      blup <- coef(fm)$Entry
+      colnames(blup) <- trait[i]
+      Blups<-cbind(Blups,blup)
+      
+      ######h2
+      vc <- VarCorr(fm,comp="Variance")
+      VG <- vc$Entry[1]
+      VP<- vc$Entry[1] + attr(vc, "sc")^2/nrep 
+      h2 <-data.frame( h2=VG/VP)
+      h2$trait <- trait[i]
+      H2<- rbind(H2,h2)  
+      
+      #* Variance Components
+      varComp<-as.data.frame(vc)
+      drops_cc<-  c("Block:Rep")
+      drops <- c("var1","var2","sdcor") 
+      varComp<-varComp[ , !(names(varComp) %in% drops )]
+      varComp<-varComp[ !(varComp$grp %in% drops_cc), ]
+      varComp$Trait<-trait[i]
+      VarComp <- rbind(VarComp,varComp)              
+    }######end for loop one enviroment
+    
+    VarComp_Output <-reshape(VarComp, idvar = "Trait", timevar = "grp", direction = "wide")
+    VarComp_Output<- round(VarComp_Output[2:4],4)
+    row.names(VarComp_Output) <-trait
+    VarComp_Output <- cbind(VarComp_Output ,H2$h2)
+    names(VarComp_Output) <- c("Genotype","Rep","Error","H2")
+    
+  } # end for one enviroment
+  
+  result <- list(VarianceComponets=VarComp_Output,Blups=Blups)
+  
+} ##end function
 
 
-VarComp_Output <-reshape(VarComp, idvar = "Trait", timevar = "grp", direction = "wide")
-VarComp_Output<- round(VarComp_Output[2:4],4)
-row.names(VarComp_Output) <-trait[1]
-VarComp_Output <- cbind(VarComp_Output ,H2$h2)
-names(VarComp_Output) <- c("Genotype","Rep","Error","H2")
 
-result <- list(VarianceComponets=VarComp_Output,Blups=Blups)
 
-return(result)
 
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
