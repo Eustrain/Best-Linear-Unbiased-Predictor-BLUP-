@@ -18,7 +18,8 @@ dat$rEPH <- as.numeric(dat$rEPH)
 trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
 
 Ex_1<- Blup_2(dat$Entry,dat$Replication,dat$BLK,dat$Location,trait,model = "RCB",dat)
-
+Ex_1$VarianceComponets# <- variance componets and H2
+Ex_1$Blups ## <- BLUPS
 
 ####################################################################
 ####################**One Enviroment  RCB **#######################
@@ -29,7 +30,8 @@ names(dat) <- c("geno","rep","ears" ,"len"  ,   "weight"  ,"yield" )
 head(dat)
 trait <- c("ears" ,"len"  ,   "weight"  ,"yield")
 Ex_2<- Blup_2(dat$geno,dat$rep,Block = NULL,Env=NULL,trait,model = "RCB",dat)
-
+Ex_2$VarianceComponets# <- variance componets and H2
+Ex_2$Blups ## <- BLUPS
 
 #################Scrip
 
