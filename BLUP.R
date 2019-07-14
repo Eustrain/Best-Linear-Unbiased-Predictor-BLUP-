@@ -2,6 +2,7 @@
 #### all effects are  taken as random
 #### Blup(Entry,Rep,Block,Env,Traits,model=c("RCB","Lattice"),data)
 #### if there not BLOCK then Block=NULL equals ENV
+####  Traits = names of traits (one o more), it has be  numeric 
 
 ####################################################################
 ####################**Across Enviroment RCB **######################
@@ -33,6 +34,7 @@ Ex_2<- Blup_2(dat$geno,dat$rep,Block = NULL,Env=NULL,trait,model = "RCB",dat)
 Ex_2$VarianceComponets# <- variance componets and H2
 Ex_2$Blups ## <- BLUPS
 
+
 #################Scrip
 
 
@@ -40,12 +42,12 @@ Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),da
   
   if (!is.null(Block)){
     Block <- as.factor(Block)
-  }  
+                            }  
   if (!is.null(Env)){
     Block <- as.factor(Env)
     Loc <- as.factor(Env) 
     nLoc <- length(levels(Loc))
-  }  
+                                 }  
   
   
   
@@ -55,11 +57,12 @@ Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),da
   nE <-length(levels(Entry))
   leng_traits<- length(trait)
   
-  
+  ############Data frame out
   VarComp <- data.frame()
   H2 <- data.frame()
   Blups<- data.frame(matrix(vector(),nE,1, dimnames=list(c(), c("Entry"))))
   Blups$Entry <- levels(Entry)
+  ############Loop
   
   if (!is.null(Env)) {
     for (i in 1: leng_traits) {
@@ -110,6 +113,7 @@ Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),da
     
   }##End across enviroment
   
+#####################################################################
   if (is.null(Env)) {
     
     for (i in 1: leng_traits) {
@@ -144,7 +148,7 @@ Blup<-function(Entry,Rep,Block=NULL,Env= NULL,Traits,model=c("RCB","Lattice"),da
       varComp<-varComp[ !(varComp$grp %in% drops_cc), ]
       varComp$Trait<-trait[i]
       VarComp <- rbind(VarComp,varComp)              
-    }######end for loop one enviroment
+    }##end for loop for one enviroment
     
     VarComp_Output <-reshape(VarComp, idvar = "Trait", timevar = "grp", direction = "wide")
     VarComp_Output<- round(VarComp_Output[2:4],4)
